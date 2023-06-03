@@ -1,0 +1,325 @@
+from matplotlib import pyplot as plt
+import matplotlib.animation as animation
+import numpy as np
+import random
+from scipy.spatial import ConvexHull
+from PIL import Image
+
+grid_size = 350
+initial_r = 80
+initial_dr = 0.7
+grid = np.zeros([grid_size, grid_size])
+max_polymer_radius = 120  # Set the maximum radius for polymerization to stop
+
+tot_actin = 200
+initial_length = 20
+actin_store = []
+sim_time = 40
+polymerise_prob = 0.2
+depolymeris_prob = 0.1
+
+TCR_bind_prob = 1
+TCR_unbind_prob = 0.2
+polymer_size = 4
+
+no_neighbour = 2
+center = grid.shape[0] // 2
+polymerisation_prob_list = []
+print(center)
+
+boundary_points = []
+
+TCR_count = 120  # Number of particles
+particle_radius = 1  # Radius of the particle
+particle_bound_status = []
+particle_store = []
+actin_pool_positions=[]
+
+
+def delete_element(lst, i):
+    if i < 0 or i >= len(lst):
+        raise IndexError("Invalid index")
+
+    del lst[i]
+    return lst
+
+for i in range(tot_actin):
+    angle = random.uniform(0, 2 * np.pi)  # Random angle for each particle
+    radius = random.uniform(initial_r, initial_r+0.01)  # Random radius within the donut
+    x = int(center + radius * np.cos(angle))
+    y = int(center + radius * np.sin(angle))
+    actin_pool_positions.append([x, y])
+
+
+
+for i in range(TCR_count):
+    angle = random.uniform(0, 2 * np.pi)  # Random angle for each particle
+    radius = random.uniform(initial_r+10, initial_r+20)  # Random radius within the donut
+    x = int(center + radius * np.cos(angle))
+    y = int(center + radius * np.sin(angle))
+    particle_store.append([x, y])
+    particle_bound_status.append(0)
+
+
+# Update the outermost points for each frame
+def update_boundary(frame):
+    current_frame = grid_store[frame]
+    inner_points = np.argwhere(current_frame == 1)
+    if len(inner_points) > 0:
+        hull = ConvexHull(inner_points)
+        boundary_points.append(inner_points[hull.vertices])
+
+
+
+F_initial_store=[]
+## initialization
+for i in range(grid.shape[0]):
+    for j in range(grid.shape[1]):
+        if np.sqrt((i - center) ** 2 + (j - center) ** 2) >= initial_r - initial_dr and np.sqrt(
+                (i - center) ** 2 + (j - center) ** 2) <= initial_r + initial_dr:
+            grid[i, j] = 1
+            actin_coord = []
+            F_initial_n = []
+            # grow initial branch
+            for k in range(1, initial_length):
+                x = i + k * (i - center) // initial_r
+                y = j + k * (j - center) // initial_r
+                if 0 <= x < grid_size and 0 <= y < grid_size:
+                    # grid[x, y] = 1
+                    actin_coord.append([x, y])
+                    F_initial_n.append([x,y])
+            actin_store.append(actin_coord)
+            F_initial_store.append(actin_coord)
+print(actin_store)
+print(actin_store[0])
+print(len(actin_store))
+# time evolution
+grid_store = []
+particle_time = []
+actin_pool_time=[]
+
+actin_last_store=[]
+actin_first_store=[]
+
+
+
+for t in range(sim_time):
+    print('time', t)
+    polymerise_prob = 0.4
+    depolymeris_prob = 0.2
+    grid_time = np.zeros((grid_size, grid_size))
+    new_actin_store = []
+    branch_polymer = []
+    actin_last_time=[]
+    actin_first_time=[]
+
+    for i, branch in enumerate(actin_store):
+
+        depolymerise = random.uniform(0, 1)
+        polymerise = random.uniform(0, 1)
+        branch_polymer.append(polymerise)
+        if len(branch) > 0:
+            actin_last_time.append(branch[0])
+            actin_first_time.append(branch[-1])
+            branch_radius = np.max(
+                np.sqrt((np.array(branch)[:, 0] - center) ** 2 + (np.array(branch)[:, 1] - center) ** 2))
+            if branch_radius >= max_polymer_radius:
+                """""
+                if polymerise<=polymerise_prob:
+                    first_point = branch[0]
+                    x, y = first_point
+                    for k in range(1, polymer_size):
+
+                        dx = k * (x - center) // initial_r
+                        dy = k * (y - center) // initial_r
+                        new_x = x - dx
+                        new_y = y - dy
+                        if 0 <= new_x < grid_size and 0 <= new_y < grid_size:
+                            # grid[new_x, new_y] = 1
+
+                            branch.insert(0, [new_x, new_y])
+                            tot_actin -= 1
+                            actin_store[i] = branch
+                """
+                if depolymerise < depolymeris_prob:
+                    actin_store[i] = actin_store[i][polymer_size:]
+                    tot_actin += 1
+                    #print(F_initial_store[i])
+                    first_point = F_initial_store[i][-1]
+                    x, y = first_point
+                    actin_store[i].insert(0, [x, y])
+
+                continue  # Skip polymerization for this branch
+
+        neighbour_lengths = []
+
+
+        for j in range(-no_neighbour, no_neighbour + 1):
+            if t % 3 == 0:
+                if j != 0:
+                    if i + j >= 0 and i + j < len(actin_store):
+                        neighbour_lengths.append(len(actin_store[i + j]))
+
+                current_length = len(branch)
+                avg_neighbour_length = np.mean(neighbour_lengths) if neighbour_lengths else current_length
+                length_difference = current_length - avg_neighbour_length
+
+                # Calculate the curvature based on the length difference
+                if current_length != 0:
+                    curvature = length_difference / current_length
+
+                    # Apply the restoring force if the curvature is positive (current polymer is longer)
+                    if curvature > 0:
+                        restoring_force = 0.1 * curvature
+                        polymerise_prob -= restoring_force
+
+
+
+        if polymerise < polymerise_prob and tot_actin > 0:
+            if len(actin_pool_positions) > 0:
+                random_index = random.randint(0, len(actin_pool_positions) - 1)
+                del actin_pool_positions[random_index]
+            if len(branch) != 0:
+                last_point = branch[-1]
+                x, y = last_point
+                # grow radially from the last point
+                for k in range(1, polymer_size):
+
+                    dx = k * (x - center) // initial_r
+                    dy = k * (y - center) // initial_r
+                    new_x = x + dx
+                    new_y = y + dy
+                    if 0 <= new_x < grid_size and 0 <= new_y < grid_size:
+                        # grid[new_x, new_y] = 1
+                        branch.append([new_x, new_y])
+
+                        tot_actin -= 1
+                        actin_store[i] = branch
+
+
+        if depolymerise < depolymeris_prob:
+            if len(actin_store[i])>0:
+                depolymerized_monomer = actin_store[i][:polymer_size]
+
+                actin_store[i] = actin_store[i][polymer_size:]
+                tot_actin += 1
+
+                #print(depolymerized_monomer)
+                actin_pool_positions.append(depolymerized_monomer[0])
+
+                # print(F_initial_store[i])
+                first_point = F_initial_store[i][-1]
+                x, y = first_point
+
+                actin_store[i].insert(0, [x, y])
+
+
+    actin_last_store.append(actin_last_time)
+    actin_first_store.append(actin_first_time)
+    actin_pool_time.append(list(actin_pool_positions))
+
+
+    for n in range(len(actin_store)):
+        for y in actin_store[n]:
+
+            grid_time[y[0],y[1]] = 1
+    grid_store.append(grid_time)
+    # actin_store = new_actin_store
+
+    particle_movement_factor = 1  # Controls the movement of the particles
+    particle_in_time = [n for n in particle_store]
+    branch_bound = [0 for _ in particle_store]
+    for j, particle in enumerate(particle_store):
+        x, y = particle
+        #if particle_bound_status[j]==0:
+         #   particle[0]+= np.random.normal(0,0.1)
+           # particle[1]+= np.random.normal(0,0.1)
+           # particle_in_time[j] = [particle[0],particle[1]]
+
+        for k, branch in enumerate(actin_store):
+            for m in range(len(branch) - 1):
+                monomer_x, monomer_y = branch[m]
+
+                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and particle_bound_status[j] == 0:
+                    particle[0] = monomer_x
+                    particle[1] = monomer_y
+                    particle_in_time[j] = [monomer_x, monomer_y]
+                    particle_bound_status[j] = 1
+                    branch_bound[j]=k
+       # print(particle_in_time[j],actin_store[branch_bound[j]],branch_bound[j])
+        if (particle_in_time[j]) not in actin_store[branch_bound[j]] and particle_bound_status[j]==1 and branch_bound[j]!=0:
+            print('diss')
+            #print([monomer_x, monomer_y],branch)
+            particle_bound_status[j]=2
+        #if (particle_in_time[j])  in actin_store[branch_bound[j]] and particle_bound_status[j] == 1:
+         #   print('bound')
+
+
+        if particle_bound_status[j] == 2:
+            dx = x - center
+            dy = y - center
+            magnitude = np.sqrt(dx ** 2 + dy ** 2)
+            if magnitude > particle_radius:
+                particle[0] -= particle_movement_factor * dx / magnitude
+                particle[1] -= particle_movement_factor * dy / magnitude
+                particle_in_time[j] = [particle[0], particle[1]]
+
+    particle_store = particle_in_time
+    particle_time.append(particle_in_time)
+    # Plot the particles
+print(actin_store[0])
+
+plt.imshow(grid)
+plt.show()
+
+
+def update_frame(frame):
+    plt.cla()  # Clear the current plot
+    plt.imshow(grid_store[frame], cmap='binary')  # Plot the grid at the current frame
+    # plt.imshow(particle_time[frame])  # Plot the grid at the current frame
+
+    particles = particle_time[frame]
+    x = [p[1] for p in particles]
+    y = [p[0] for p in particles]
+    plt.scatter(x, y, color='red', s=1)
+
+    act_pool_last = actin_last_store[frame]
+
+    xl = [p[1] for p in act_pool_last]
+    yl = [p[0] for p in act_pool_last]
+    plt.scatter(xl, yl, color='blue', s=0.3)
+
+    act_pool_first = actin_first_store[frame]
+
+    xi = [p[1] for p in act_pool_first]
+    yi = [p[0] for p in act_pool_first]
+    plt.scatter(xi, yi, color='blue', s=0.3)
+
+   # plt.title('Frame {}'.format(frame))
+    #plt.axis('off')  # Turn off the axis
+    #plt.title('Frame {}'.format(frame))
+    #plt.axis('off')  # Turn off the axis
+
+    # Plot the boundary
+    if frame < len(boundary_points):
+        boundary = boundary_points[frame]
+        boundary_x = [p[1] for p in boundary]
+        boundary_y = [p[0] for p in boundary]
+        #plt.plot(boundary_x, boundary_y, color='blue')
+
+
+# Create a figure and axes for the plot
+fig, ax = plt.subplots()
+
+# Create the animation
+anim = animation.FuncAnimation(fig, update_frame, frames=len(grid_store), interval=200)
+
+# Update the boundary points for each frame
+for frame in range(len(grid_store)):
+    update_boundary(frame)
+
+# Save the animation as a GIF
+anim.save('grid_movie.gif', writer='pillow')
+
+# Alternatively, show the animation in a pop-up window
+plt.show()
