@@ -9,12 +9,12 @@ grid_size = 350
 initial_r = 80
 initial_dr = 0.3
 grid = np.zeros([grid_size, grid_size])
-max_polymer_radius = 120  # Set the maximum radius for polymerization to stop
+max_polymer_radius = 150  # Set the maximum radius for polymerization to stop
 
-tot_actin = 200
+tot_actin = 150
 initial_length = 20
 actin_store = []
-sim_time = 60
+sim_time = 100
 polymerise_prob = 0.2
 depolymeris_prob = 0.1
 
@@ -105,7 +105,7 @@ branch_bound = [0 for _ in particle_store]
 
 for t in range(sim_time):
     print('time', t)
-    polymerise_prob = 0.4
+    polymerise_prob = 0.1
     depolymeris_prob = 0.5
     grid_time = np.zeros((grid_size, grid_size))
     new_actin_store = []
@@ -114,6 +114,10 @@ for t in range(sim_time):
     actin_first_time=[]
 
     for i, branch in enumerate(actin_store):
+        if t in range(0,50) and branch[-1][0]>175:
+            polymerise_prob =0.8
+        if t in range(50,100) and branch[-1][0]<175:
+            polymerise_prob =0.8
 
         depolymerise = random.uniform(0, 1)
         polymerise = random.uniform(0, 1)
@@ -173,12 +177,11 @@ for t in range(sim_time):
                         restoring_force = 0.1 * curvature
                         polymerise_prob -= restoring_force
 
-
-
+        #print(polymerise_prob)
         if polymerise < polymerise_prob and tot_actin > 0:
-            if len(actin_pool_positions) > 0:
-                random_index = random.randint(0, len(actin_pool_positions) - 1)
-                del actin_pool_positions[random_index]
+            #if len(actin_pool_positions) > 0:
+             #   random_index = random.randint(0, len(actin_pool_positions) - 1)
+             #   del actin_pool_positions[random_index]
             if len(branch) != 0:
                 last_point = branch[-1]
                 x, y = last_point
