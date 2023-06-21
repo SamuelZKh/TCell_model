@@ -23,7 +23,7 @@ TCR_unbind_prob = 0.2
 polymer_size = 4
 D = 0.5
 no_neighbour = 2
-
+V=0.5
 polymerise_region = 8
 center = grid.shape[0] // 2
 polymerisation_prob_list = []
@@ -44,8 +44,6 @@ def delete_element(lst, i):
 
     del lst[i]
     return lst
-
-
 
 
 for i in range(TCR_count):
@@ -89,8 +87,8 @@ for i in range(grid.shape[0]):
 print(actin_store)
 print(actin_store[0])
 print(len(actin_store))
-actin_pool_status=[]
-for i in range(tot_actin-sum(int(len(sublist) / polymer_size) for sublist in actin_store)):
+actin_pool_status = []
+for i in range(tot_actin - sum(int(len(sublist) / polymer_size) for sublist in actin_store)):
     angle = random.uniform(0, np.pi)  # Random angle for each particle
     radius = random.uniform(initial_r, initial_r + 40)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
@@ -122,12 +120,19 @@ for t in range(sim_time):
     actin_pool_now = list(actin_pool_positions)
 
     for k, mono in enumerate(actin_pool_now):
+        if actin_pool_status[k]==0:
+            mono[0] += np.random.normal(-D, D)
+            mono[1] += np.random.normal(-D, D)
+            actin_pool_now[k] = [mono[0], mono[1]]
+        if actin_pool_status[k]==1:
+           # mono[0] += -V+np.random.normal(-D, D)  # Bias towards the left
+            mono[1] += -V+np.random.normal(-D, D)
+            actin_pool_now[k] = [mono[0], mono[1]]
+        if actin_pool_status[k]==2:
 
-        mono[0] -= np.random.normal(0, D)  # Bias towards the left
-        mono[1] += np.random.normal(-D, D)
-
-        actin_pool_positions[k] = [mono[0], mono[1]]
-
+           # mono[0] += V+np.random.normal(-D, D)  # Bias towards the right
+            mono[1] += V+np.random.normal(-D, D)
+            actin_pool_now[k] = [mono[0], mono[1]]
 
     for i, branch in enumerate(actin_store):
         polymerise_prob = 0.9
@@ -228,6 +233,7 @@ for t in range(sim_time):
         # print(available_monomer)
         # print(len(available_monomer))
         if polymerise < polymerise_prob and len(available_monomer) > 0 and len(actin_pool_now) > 0:
+            actin_pool_status.pop(ind_available_monomer[0])
             actin_pool_now.pop(ind_available_monomer[0])
             # if len(actin_pool_positions) > 0:
             #   random_index = random.randint(0, len(actin_pool_positions) - 1)
@@ -283,6 +289,11 @@ for t in range(sim_time):
                 actin_store[i] = depolymerized_monomer + actin_store[i]
                  """""
                 actin_pool_now.append([x, y])
+                if x>center:
+                    actin_pool_status.append(1)
+                if x<=center:
+                    actin_pool_status.append(2)
+
 
         ### if not plymerising can experience contraction
         ### check if any free monomers nearby
@@ -308,10 +319,17 @@ for t in range(sim_time):
                 x, y = first_point
 
                 actin_pool_now.append([x, y])
+                if x>center:
+                    actin_pool_status.append(1)
+                if x<=center:
+                    actin_pool_status.append(2)
+
 
     bound_monomer_count = sum(int(len(sublist) / polymer_size) for sublist in actin_store)
     free_monomer = len(actin_pool_now)
+
     print(bound_monomer_count + free_monomer)
+   # print(len(actin_pool_now),len(actin_pool_status))
     ## store everything in for this time
     actin_pool_positions = actin_pool_now
     actin_pool_time.append(actin_pool_positions)
