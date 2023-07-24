@@ -54,7 +54,7 @@ print(center)
 
 boundary_points = []
 
-TCR_count = 120  # Number of particles
+TCR_count = 200  # Number of particles
 particle_radius = 0.7  # Radius of the particle
 particle_bound_status = []
 particle_store = []
@@ -71,7 +71,7 @@ def delete_element(lst, i):
 
 for i in range(TCR_count):
     angle = random.uniform(0, 2 * np.pi)  # Random angle for each particle
-    radius = random.uniform(initial_r + 10, initial_r + 20)  # Random radius within the donut
+    radius = random.uniform(initial_r + 10, initial_r + 50)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
     y = int(center + radius * np.sin(angle))
     particle_store.append([x, y])
@@ -492,7 +492,7 @@ for t in range(sim_time):
         # print(polymerise_prob, particle_in_time[j], actin_store[branch_bound[j]], branch_bound[j])
         # print(particle_in_time[j],actin_store[branch_bound[j]],branch_bound[j])
         if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 1 and branch_bound[
-            j] != 0 and branch_polymer[j] < polymerise_prob:
+            j] != 0 and branch_polymer[j] < polymerise_prob and branch_type[branch_bound[j]]==1:
             index = actin_store[branch_bound[j]].index(particle_in_time[j])
             branch_ind = branch_bound[j]
             # print(index,len((actin_store[branch_bound[j]])))
@@ -511,11 +511,11 @@ for t in range(sim_time):
             j] != 0:
             # print('diss')
             # print([monomer_x, monomer_y],branch)
-            particle_bound_status[j] = 1   ### change to 2 to couple
+            particle_bound_status[j] = 2   ### change to 2 to couple
         # if (particle_in_time[j])  in actin_store[branch_bound[j]] and particle_bound_status[j] == 1:
         #   print('bound')
 
-        if particle_bound_status[j] == 1:### change to 2 to couple
+        if particle_bound_status[j] == 2:### change to 2 to couple
             dx = x - center
             dy = y - center
             magnitude = np.sqrt(dx ** 2 + dy ** 2)
