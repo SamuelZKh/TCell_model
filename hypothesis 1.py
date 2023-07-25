@@ -46,7 +46,7 @@ polymer_size = 4
 D = 0.5
 no_neighbour = 2
 V=4
-polymerise_region = 10
+polymerise_region = 7
 center = grid.shape[0] // 2
 print('cc',center)
 polymerisation_prob_list = []
@@ -54,8 +54,8 @@ print(center)
 
 boundary_points = []
 
-TCR_count = 200  # Number of particles
-particle_radius = 0.7  # Radius of the particle
+TCR_count = 300  # Number of particles
+particle_radius = 1  # Radius of the particle
 particle_bound_status = []
 particle_store = []
 actin_pool_positions = []
@@ -71,7 +71,7 @@ def delete_element(lst, i):
 
 for i in range(TCR_count):
     angle = random.uniform(0, 2 * np.pi)  # Random angle for each particle
-    radius = random.uniform(initial_r + 10, initial_r + 50)  # Random radius within the donut
+    radius = random.uniform(initial_r + 20, initial_r + 75)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
     y = int(center + radius * np.sin(angle))
     particle_store.append([x, y])
@@ -113,7 +113,7 @@ print(len(actin_store))
 actin_pool_status = []
 for i in range(tot_actin - sum(int(len(sublist) / polymer_size) for sublist in actin_store)):
     angle = random.uniform(0, 2*np.pi)  # Random angle for each particle
-    radius = random.uniform(initial_r, initial_r + 40)  # Random radius within the donut
+    radius = random.uniform(initial_r, initial_r + 60)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
     y = int(center + radius * np.sin(angle))
 
@@ -182,7 +182,7 @@ for t in range(sim_time):
         boundary_y_time.append(branch[-1][1])
         polymerise_prob_1 = 1
         polymerise_prob_0 = 0.6
-        depolymeris_prob = 0.1
+        depolymeris_prob = 0.4
 
         depolymerise = random.uniform(0, 1)
         polymerise = random.uniform(0, 1)
@@ -504,34 +504,39 @@ for t in range(sim_time):
             for m in range(len(branch) - 1):
                 monomer_x, monomer_y = branch[m]
 
-                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and particle_bound_status[
-                    j] == 0:
+                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and (particle_bound_status[j] == 0 or particle_bound_status[j] == 2) and branch_type[branch_bound[j]]==1:
                     particle[0] = monomer_x
                     particle[1] = monomer_y
                     particle_in_time[j] = [monomer_x, monomer_y]
                     particle_bound_status[j] = 1
                     branch_bound[j] = k
 
+                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and particle_bound_status[j] == 0  and branch_type[branch_bound[j]]==0:
+                    particle[0] = monomer_x
+                    particle[1] = monomer_y
+                    particle_in_time[j] = [monomer_x, monomer_y]
+                    particle_bound_status[j] = 3
+                    branch_bound[j] = k
+
         # if j == 6 and branch_bound[j] != 0:
         # print(polymerise_prob, particle_in_time[j], actin_store[branch_bound[j]], branch_bound[j])
         # print(particle_in_time[j],actin_store[branch_bound[j]],branch_bound[j])
 
-        if (particle_in_time[j]) in actin_store[branch_bound[j]] and (particle_bound_status[j] == 1 or particle_bound_status[j] == 2) and branch_bound[
-            j] != 0 and branch_polymer[j] < polymerise_prob_1 and branch_type[branch_bound[j]]==1:
+        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 1  and branch_bound[j] != 0 and branch_polymer[j] < polymerise_prob_1 and branch_type[branch_bound[j]]==1:
             index = actin_store[branch_bound[j]].index(particle_in_time[j])
             branch_ind = branch_bound[j]
             # print(index,len((actin_store[branch_bound[j]])))
             if index < len(actin_store[branch_bound[j]]) - polymer_size and len(actin_store[branch_bound[j]]) > 0:
-                #print('move')
+                print('move')
 
                 # print(len(actin_store),branch_bound[j],index+1,len(actin_store[branch_bound[j]]))
                 # print(index+1,len(actin_store[branch_bound[j]])+polymer_size+1)
 
-                x_move, y_move = actin_store[branch_ind][index + polymer_size - 1]
+                x_move, y_move = actin_store[branch_ind][index + polymer_size - 2]
                 particle[0] = x_move
                 particle[1] = y_move
                 particle_in_time[j] = [x_move, y_move]
-        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 1 and branch_bound[
+        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 3 and branch_bound[
             j] != 0 and branch_polymer[j] < polymerise_prob_0 and branch_type[branch_bound[j]]==0:
             index = actin_store[branch_bound[j]].index(particle_in_time[j])
             branch_ind = branch_bound[j]
@@ -547,7 +552,7 @@ for t in range(sim_time):
                 particle[1] = y_move
                 particle_in_time[j] = [x_move, y_move]
 
-        if (particle_in_time[j]) not in actin_store[branch_bound[j]] and particle_bound_status[j] == 1 and branch_bound[
+        if (particle_in_time[j]) not in actin_store[branch_bound[j]] and (particle_bound_status[j] == 1 or particle_bound_status[j] == 3) and branch_bound[
             j] != 0:
             # print('diss')
             # print([monomer_x, monomer_y],branch)
@@ -584,6 +589,9 @@ def update_frame(frame):
     y = [p[0] for p in bound]
     #plt.scatter(x, y, color='blue',s=1)
 
+    plt.Circle((center, center),max_polymer_radius,color='blue')
+
+
 
     particles = particle_time[frame]
     x = [p[1] for p in particles]
@@ -593,7 +601,7 @@ def update_frame(frame):
     free_monomer = actin_pool_time[frame]
     x = [p[1] for p in free_monomer]
     y = [p[0] for p in free_monomer]
-    plt.scatter(x, y, color='green', s=0.2)
+    #plt.scatter(x, y, color='green', s=0.2)
 
     act_pool_last = actin_last_store[frame]
 
