@@ -30,15 +30,15 @@ def interpolate_boundary(x, y, smoothing_factor):
 np.random.seed(0)
 
 grid_size = 400
-initial_r = 80
-initial_dr = 0.3
+initial_r = 60
+initial_dr =0.5
 grid = np.zeros([grid_size, grid_size])
-max_polymer_radius = 300  # Set the maximum radius for polymerization to stop
+max_polymer_radius = 70  # Set the maximum radius for polymerization to stop
 
 tot_actin = 3000
 initial_length = 20
 actin_store = []
-sim_time =70
+sim_time =100
 
 TCR_bind_prob = 1
 TCR_unbind_prob = 0.2
@@ -46,7 +46,7 @@ polymer_size = 4
 D = 0.5
 no_neighbour = 2
 V=4
-polymerise_region = 8
+polymerise_region = 7
 center = grid.shape[0] // 2
 print('cc',center)
 polymerisation_prob_list = []
@@ -54,8 +54,8 @@ print(center)
 
 boundary_points = []
 
-TCR_count = 120  # Number of particles
-particle_radius = 0.7  # Radius of the particle
+TCR_count = 300  # Number of particles
+particle_radius = 1  # Radius of the particle
 particle_bound_status = []
 particle_store = []
 actin_pool_positions = []
@@ -71,7 +71,7 @@ def delete_element(lst, i):
 
 for i in range(TCR_count):
     angle = random.uniform(0, 2 * np.pi)  # Random angle for each particle
-    radius = random.uniform(initial_r + 10, initial_r + 20)  # Random radius within the donut
+    radius = random.uniform(initial_r + 5, initial_r + 30)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
     y = int(center + radius * np.sin(angle))
     particle_store.append([x, y])
@@ -107,13 +107,15 @@ for i in range(grid.shape[0]):
             actin_store.append(actin_coord)
             F_initial_store.append(actin_coord)
 
+
+
 print(actin_store)
 print(actin_store[0])
 print(len(actin_store))
 actin_pool_status = []
 for i in range(tot_actin - sum(int(len(sublist) / polymer_size) for sublist in actin_store)):
     angle = random.uniform(0, 2*np.pi)  # Random angle for each particle
-    radius = random.uniform(initial_r, initial_r + 40)  # Random radius within the donut
+    radius = random.uniform(initial_r, initial_r + 60)  # Random radius within the donut
     x = int(center + radius * np.cos(angle))
     y = int(center + radius * np.sin(angle))
 
@@ -129,7 +131,18 @@ actin_first_store = []
 
 branch_bound = [0 for _ in particle_store]
 boundary_store=[]
+
+branch_type=[]
+for _ in range(len(actin_store)):
+    rand_no=random.uniform(0,1)
+    if rand_no<0.5:
+        branch_type.append(1)
+    else:
+        branch_type.append(1)
+branch_type_i=branch_type
+
 for t in range(sim_time):
+
     print('time', t)
     # polymerise_prob = 0
     # depolymeris_prob = 0.5
@@ -144,32 +157,51 @@ for t in range(sim_time):
 
     for k, mono in enumerate(actin_pool_now):
         if actin_pool_status[k]==0 or actin_pool_status[k]==3:
-            mono[0] += np.random.normal(-D, D)
-            mono[1] += np.random.normal(-D, D)
+            mono[0] += np.random.normal(0, D)
+            mono[1] += np.random.normal(0, D)
             actin_pool_now[k] = [mono[0], mono[1]]
         if actin_pool_status[k]==1:
-           # mono[0] += -V+np.random.normal(-D, D)  # Bias towards the left
-            mono[1] += -V-np.random.normal(-D, D)
-            actin_pool_now[k] = [mono[0], mono[1]]
-        if actin_pool_status[k]==2:
+            f=1
+            dx = mono[0] - center
+            dy = mono[1] - center
+            magnitude = np.sqrt(dx ** 2 + dy ** 2)
+            if magnitude > particle_radius:
+                x_new=mono[0] + f* dx / magnitude
+                y_new=mono[1] + f* dy / magnitude
+                actin_pool_now[k] = [x_new,y_new]
+
+
+
+
+       # if actin_pool_status[k]==2:
 
            # mono[0] += V+np.random.normal(-D, D)  # Bias towards the right
-            mono[1] += V+np.random.normal(-D, D)
-            actin_pool_now[k] = [mono[0], mono[1]]
+            #mono[1] += V+np.random.normal(-D, D)
+            #actin_pool_now[k] = [mono[0], mono[1]]
     boundary_x_time=[]
     boundary_y_time =[]
+
+    if t==50:
+        for i in (F_initial_store):
+
+            actin_store.append(i)
+
+
+
+
+
     for i, branch in enumerate(actin_store):
         boundary_x_time.append(branch[-1][0])
         boundary_y_time.append(branch[-1][1])
-        polymerise_prob = 0.9
-        depolymeris_prob = 0.1
+        polymerise_prob_1 = 1
+        polymerise_prob_0 = 0.6
+        depolymeris_prob = 0.4
 
         depolymerise = random.uniform(0, 1)
         polymerise = random.uniform(0, 1)
 
-        branch_polymer_prob.append(polymerise_prob)
-        branch_polymer.append(
-            polymerise)  ### store to later check if the branch undergoes poymerisation at this time point or not
+        branch_polymer_prob.append(polymerise)
+        branch_polymer.append(polymerise)  ### store to later check if the branch undergoes poymerisation at this time point or not
         if len(branch) > 0:
             ## impose a limit to growth after which polymerisation stops
             actin_last_time.append(branch[0])
@@ -194,7 +226,7 @@ for t in range(sim_time):
 
                 # print(available_monomer)
                 # print(len(available_monomer))
-                if polymerise < polymerise_prob and len(available_monomer) > 0 and len(actin_pool_now) > 0:
+                if polymerise < polymerise_prob_0 and len(available_monomer) > 0 and len(actin_pool_now) > 0:
                     first_point = branch[0]
                     x, y = first_point
                     for k in range(1, polymer_size):
@@ -233,7 +265,15 @@ for t in range(sim_time):
                     actin_store[i] = depolymerized_monomer + actin_store[i]
                 """""
                 continue  # Skip de polymerization for this branch
+            if branch_radius >= max_polymer_radius :
+                if depolymerise < depolymeris_prob:
+                    depolymerized_monomer = actin_store[i][:polymer_size]
+                    actin_store[i] = actin_store[i][polymer_size:]
+                    tot_actin += 1
 
+
+
+                continue  # Skip polymerization for this branch
         neighbour_lengths = []
 
         ## implement curvature force. if a bracnh is longer than n of its surroundings the polymerisation propability stops
@@ -254,7 +294,8 @@ for t in range(sim_time):
                     # Apply the restoring force if the curvature is positive (current polymer is longer)
                     if curvature > 0:
                         restoring_force = 0.1 * curvature
-                        polymerise_prob -= restoring_force
+                        polymerise_prob_0 -= restoring_force
+
 
         ## polymerisation implementation if polymerisation event occours then
         # print(polymerise_prob)
@@ -273,7 +314,7 @@ for t in range(sim_time):
 
         # print(available_monomer)
         # print(len(available_monomer))
-        if polymerise < polymerise_prob and len(available_monomer) > 0 and len(actin_pool_now) > 0:
+        if polymerise < polymerise_prob_0 and len(available_monomer) > 0 and len(actin_pool_now) > 0 and branch_type[i]==0:
             actin_pool_status.pop(ind_available_monomer[0])
             actin_pool_now.pop(ind_available_monomer[0])
             # if len(actin_pool_positions) > 0:
@@ -291,7 +332,32 @@ for t in range(sim_time):
                     new_y = y + dy
                     if 0 <= new_x < grid_size and 0 <= new_y < grid_size:
                         # grid[new_x, new_y] = 1
-                        branch.append([new_x, new_y])
+                        branch.append([new_x+3, new_y])
+                        #   print('polymerise')
+
+                        actin_store[i] = branch
+
+        if polymerise < polymerise_prob_1 and len(available_monomer) > 0 and len(actin_pool_now) > 0 and branch_type[i]==1:
+            actin_pool_status.pop(ind_available_monomer[0])
+            actin_pool_now.pop(ind_available_monomer[0])
+            # if len(actin_pool_positions) > 0:
+            #   random_index = random.randint(0, len(actin_pool_positions) - 1)
+            #   del actin_pool_positions[random_index]
+            if len(branch) != 0:
+
+                last_point = branch[-1]
+                x, y = last_point
+                last_point = branch[-1]
+                # grow radially from the last point
+                for k in range(1, polymer_size):
+
+                    dx = (k * (x - center) // initial_r)
+                    dy = (k * (y - center) // initial_r)
+                    new_x = x + dx
+                    new_y = y + dy
+                    if 0 <= new_x < grid_size and 0 <= new_y < grid_size:
+                        # grid[new_x, new_y] = 1
+                        branch.append([new_x+4, new_y])
                         #   print('polymerise')
 
                         actin_store[i] = branch
@@ -300,11 +366,12 @@ for t in range(sim_time):
             if len(actin_store[i]) > 0:
                 depolymerized_monomer = actin_store[i][:polymer_size]
                 actin_store[i] = actin_store[i][polymer_size:]
-
+                #print(depolymerized_monomer[-1])
                 ##Reset depolymerized monomer to initial position
                 first_point = F_initial_store[i][0]
-                x, y = first_point
-                depolymerized_monomer[0] = [x, y]
+                x, y = depolymerized_monomer[-1]
+               # depolymerized_monomer[0] = [x, y]
+
                 """""
                 available_monomer = []
                 ind_available_monomer = []
@@ -328,15 +395,14 @@ for t in range(sim_time):
 
                 # Add depolymerized monomer back to actin store
                 actin_store[i] = depolymerized_monomer + actin_store[i]
-                """""
-                fraction_moving=0.1
+                 """""
+
                 actin_pool_now.append([x, y])
-                if y>center and random.uniform(0, 1)<fraction_moving:
+                type_segregation=random.uniform(0,1)
+                if type_segregation<0.5:
                     actin_pool_status.append(1)
-                if y<=center and random.uniform(0, 1)<fraction_moving:
-                    actin_pool_status.append(2)
                 else:
-                    actin_pool_status.append(3)
+                    actin_pool_status.append(0)
 
 
 
@@ -367,7 +433,7 @@ for t in range(sim_time):
                 if y>center:
                     actin_pool_status.append(1)
                 if y<=center:
-                    actin_pool_status.append(2)
+                    actin_pool_status.append(1)
 
     print(boundary_x_time)
     angle=[]
@@ -429,28 +495,55 @@ for t in range(sim_time):
 
     for j, particle in enumerate(particle_store):
         x, y = particle
-        if particle_bound_status[j] == 0:
+        rad=np.sqrt(x**2+y**2)
+        if particle_bound_status[j] == 0 or particle_bound_status[j] == 3 :
             particle[0] += np.random.normal(0, 0.1)
             particle[1] += np.random.normal(0, 0.1)
             particle_in_time[j] = [particle[0], particle[1]]
+        if rad<=max_polymer_radius:
+            particle_bound_status[j] = 2
+
+        if rad <= 20:
+            particle_bound_status[j] = 3
 
         for k, branch in enumerate(actin_store):
             for m in range(len(branch) - 1):
                 monomer_x, monomer_y = branch[m]
 
-                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and particle_bound_status[
-                    j] == 0:
+                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and (particle_bound_status[j] == 0 or particle_bound_status[j] == 2) :
                     particle[0] = monomer_x
                     particle[1] = monomer_y
                     particle_in_time[j] = [monomer_x, monomer_y]
                     particle_bound_status[j] = 1
                     branch_bound[j] = k
 
+                if np.sqrt((x - monomer_x) ** 2 + (y - monomer_y) ** 2) <= particle_radius and particle_bound_status[j] == 0  :
+                    particle[0] = monomer_x
+                    particle[1] = monomer_y
+                    particle_in_time[j] = [monomer_x, monomer_y]
+                    particle_bound_status[j] = 3
+                    branch_bound[j] = k
+
         # if j == 6 and branch_bound[j] != 0:
         # print(polymerise_prob, particle_in_time[j], actin_store[branch_bound[j]], branch_bound[j])
         # print(particle_in_time[j],actin_store[branch_bound[j]],branch_bound[j])
-        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 1 and branch_bound[
-            j] != 0 and branch_polymer[j] < polymerise_prob:
+
+        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 1  and branch_bound[j] != 0 and branch_polymer[j] < polymerise_prob_1  :
+            index = actin_store[branch_bound[j]].index(particle_in_time[j])
+            branch_ind = branch_bound[j]
+            # print(index,len((actin_store[branch_bound[j]])))
+            if index < len(actin_store[branch_bound[j]]) - polymer_size and len(actin_store[branch_bound[j]]) > 0:
+               # print('move')
+
+                # print(len(actin_store),branch_bound[j],index+1,len(actin_store[branch_bound[j]]))
+                # print(index+1,len(actin_store[branch_bound[j]])+polymer_size+1)
+
+                x_move, y_move = actin_store[branch_ind][index + polymer_size - 2]
+                particle[0] = x_move
+                particle[1] = y_move
+                particle_in_time[j] = [x_move, y_move]
+        if (particle_in_time[j]) in actin_store[branch_bound[j]] and particle_bound_status[j] == 3 and branch_bound[
+            j] != 0 and branch_polymer[j] < polymerise_prob_0 and branch_type[branch_bound[j]]==0:
             index = actin_store[branch_bound[j]].index(particle_in_time[j])
             branch_ind = branch_bound[j]
             # print(index,len((actin_store[branch_bound[j]])))
@@ -460,20 +553,20 @@ for t in range(sim_time):
                 # print(len(actin_store),branch_bound[j],index+1,len(actin_store[branch_bound[j]]))
                 # print(index+1,len(actin_store[branch_bound[j]])+polymer_size+1)
 
-                x_move, y_move = actin_store[branch_ind][index + polymer_size - 1]
+                x_move, y_move = actin_store[branch_ind][index]
                 particle[0] = x_move
                 particle[1] = y_move
                 particle_in_time[j] = [x_move, y_move]
 
-        if (particle_in_time[j]) not in actin_store[branch_bound[j]] and particle_bound_status[j] == 1 and branch_bound[
+        if (particle_in_time[j]) not in actin_store[branch_bound[j]] and (particle_bound_status[j] == 1 or particle_bound_status[j] == 3) and branch_bound[
             j] != 0:
             # print('diss')
             # print([monomer_x, monomer_y],branch)
-            particle_bound_status[j] = 1   ### change to 2 to couple
+            particle_bound_status[j] = 2   ### change to 2 to couple
         # if (particle_in_time[j])  in actin_store[branch_bound[j]] and particle_bound_status[j] == 1:
         #   print('bound')
 
-        if particle_bound_status[j] == 1:### change to 2 to couple
+        if particle_bound_status[j] == 2:### change to 2 to couple
             dx = x - center
             dy = y - center
             magnitude = np.sqrt(dx ** 2 + dy ** 2)
@@ -481,6 +574,9 @@ for t in range(sim_time):
                 particle[0] -= particle_movement_factor * dx / magnitude
                 particle[1] -= particle_movement_factor * dy / magnitude
                 particle_in_time[j] = [particle[0], particle[1]]
+
+
+
 
     particle_store = particle_in_time
     particle_time.append(particle_in_time)
@@ -491,6 +587,16 @@ print(actin_store[0])
 # plt.imshow(grid)
 # plt.show()
 
+x_circ = []
+y_circ=[]
+r=max_polymer_radius
+import math
+t = 0
+stepSize = 0.01
+while t < 2 * math.pi:
+    x_circ.append(r * math.cos(t)+center)
+    y_circ.append(r * math.sin(t)+center)
+    t += stepSize
 
 def update_frame(frame):
     plt.cla()  # Clear the current plot
@@ -502,6 +608,9 @@ def update_frame(frame):
     y = [p[0] for p in bound]
     #plt.scatter(x, y, color='blue',s=1)
 
+    plt.scatter(x_circ,y_circ,s=1)
+
+
 
     particles = particle_time[frame]
     x = [p[1] for p in particles]
@@ -511,7 +620,7 @@ def update_frame(frame):
     free_monomer = actin_pool_time[frame]
     x = [p[1] for p in free_monomer]
     y = [p[0] for p in free_monomer]
-    plt.scatter(x, y, color='green', s=0.2)
+    #plt.scatter(x, y, color='green', s=0.2)
 
     act_pool_last = actin_last_store[frame]
 
