@@ -25,7 +25,9 @@ num_particles = 50
 radius_circle = 5
 # Initialize particle1 positions
 
-
+particle1_initial=[]
+for i in range(num_particles):
+    particle1_initial.append([np.random.normal(0, 0.2),np.random.normal(0, 0.2)])
 
 # Initialize particle2 positions
 particle2 = [[np.random.uniform(-10, 10), np.random.uniform(-10, 10)] for _ in range(num_particles)]
@@ -56,28 +58,23 @@ def update(frame):
         randomy = np.random.normal(0, 0.2)
         x_fix.append(randomx)
         y_fix.append(randomy)
-    xy_pos=[]
-    for i in range(num_particles):
-        xi = np.random.normal(0, 0.2)
-        yi = np.random.normal(0, 0.2)
-        xy_pos.append([xi,yi])
 
+    for i in range(num_particles-1):
 
         # Move particle1 in a spiral
         r = dr * frame
         angle = d_theta * frame  # Shift the angle for each particle1
-        x1 =xi+r * np.cos(angle)
-        y1 =yi+r * np.sin(angle)
+        x1 =r * np.cos(angle)
+        y1 =r * np.sin(angle)
 
         # Calculate the attraction force based on the distance
-
-        force_x = x1
-        force_y = y1
+        attraction_strength = 1
+        force_x = attraction_strength * x_fix[i]
+        force_y = attraction_strength * y_fix[i]
         random_no=random.uniform(0,1)
-        if np.sqrt((x1+force_x) ** 2 + (y1+force_y) ** 2) < radius_circle and random_no<0.8:
+        if np.sqrt((x1+force_x) ** 2 + (y1+force_y) ** 2) < radius_circle :
             particle1_positions.append([x1+force_x, y1+force_y])
-        elif np.sqrt((x1+force_x) ** 2 + (y1+force_y) ** 2) < radius_circle and random_no>0.8:
-            particle1_positions.append([xi, yi])
+
 
 
         if frame >= frame_threshold1:
