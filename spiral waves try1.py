@@ -3,15 +3,16 @@ import matplotlib.pyplot as plt
 import random
 import matplotlib.animation as animation
 import copy
-patch_area=0.5
-sim_time=1000
-dr= 0.0006
-d_theta= 0.1
-frame_threshold1 = 300  # Number of frames after which the second patch appears
-frame_threshold2 = 600
+patch_area=0.2
+sim_time=300
+dr= 0.01
+d_theta= 0.4
+frame_threshold1 = 70  # Number of frames after which the second patch appears
+frame_threshold2 = 120
 new_patch_offset = 100  # Offset for the new patch of particle1s to distinguish them
-D=0.01
-
+D=0.003
+num_particles = 30
+radius_circle = 3
 
 def random_polar_coordinates(radius):
     r = np.sqrt(np.random.uniform(0, radius**2))
@@ -25,17 +26,20 @@ def random_angle():
 # Function to generate random polar coordinates within the circle's radius
 
 # Define the number of particle1s and particle2s
-num_particles = 50
-radius_circle = 10
+
 # Initialize particle1 positions
 
 
 particle_1_initial=[]
 for i in range(num_particles):
-    xi = np.random.normal(0, 0.2)
-    yi = np.random.normal(0, 0.2)
-    particle_1_initial.append([xi, yi])
-num_TCR=100
+    angle = np.random.uniform(0,np.pi)
+    distance = np.random.uniform(0.1,0.3)
+    x = distance * np.cos(angle)
+    y = distance * np.sin(angle)
+    particle_1_initial.append([x, y])
+
+particle1_save=copy.copy(particle_1_initial)
+num_TCR=200
 
 
 particle2 = [[np.random.uniform(-10, 10), np.random.uniform(-10, 10)] for _ in range(num_TCR)]
@@ -46,90 +50,66 @@ def random_angle():
     return np.random.uniform(0, 2 * np.pi)
 
 
-particle1_save=copy.copy(particle_1_initial)
-particle1_save2=copy.copy(particle_1_initial)
-particle1_save3=copy.copy(particle_1_initial)
+particle_movement_type=[0 for _ in range(len(particle1_save))]
+time_to_add_particles=400
 
 def update(frame):
+    particle_1_initial = []
+
     print(frame)
+    N=num_particles
     global particle1_positions, particle2
     particle1_positions = []
     # Update particle1 positions
+    if frame == frame_threshold1:
 
-    if frame >= frame_threshold1:
-        x_fix_new = []
-        y_fix_new = []
+        N=N+num_particles
+        for _ in range(num_particles):
+            particle1_save.append([random.uniform(-0.2,0.2),random.uniform(-0.2,0.2)])
+            particle_movement_type.append(1)
+    if frame == frame_threshold2:
 
-        for i in range(num_particles):
-            randomx = np.random.normal(0, 0.2)
-            randomy = np.random.normal(0, 0.2)
-            x_fix_new.append(randomx)
-            y_fix_new.append(randomy)
+        N=N+num_particles
+        for _ in range(num_particles):
+            particle1_save.append([random.uniform(-0.2,0.2),random.uniform(-0.2,0.2)])
+            particle_movement_type.append(2)
 
-    x_fix = []
-    y_fix = []
-
-    for i in range(num_particles):
-        randomx = np.random.normal(0, 0.2)
-        randomy = np.random.normal(0, 0.2)
-        x_fix.append(randomx)
-        y_fix.append(randomy)
-    xy_pos=[]
-    for i in range(num_particles):
+    for i in range(len(particle1_save)):
 
         xi=particle1_save[i][0]
         yi=particle1_save[i][1]
         # Move particle1 in a spiral
-        r = dr * frame
-        angle = d_theta * frame
+        if particle_movement_type[i]==0:
+            r = dr * frame
+            angle = d_theta * frame
+        if particle_movement_type[i]==1:
+            r = dr * (frame-frame_threshold1)
+            angle = d_theta * (frame-frame_threshold1)
+        if particle_movement_type[i] == 2:
+            r = dr * (frame - frame_threshold2)
+            angle = d_theta * (frame - frame_threshold2)
         x1 =xi+ r * np.cos(angle)+np.random.normal(0, 0.02)
         y1 =yi+r * np.sin(angle)+np.random.normal(0, 0.02)
-
-
-
-
-
+        frac=0.7
+        x2 = xi + r*frac * np.cos(angle*frac) + np.random.normal(0, 0.02)
+        y2 = yi + r*frac * np.sin(angle*frac) + np.random.normal(0, 0.02)
+        """""
         random_no=random.uniform(0,1)
+        if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle and random_no<0.3:
+            particle1_positions.append([x1, y1])
+        elif np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle and random_no >=0.3 and random_no<0.6 :
+            particle1_positions.append([x2, y2])
+        elif np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle and random_no >=0.6 :
+            particle1_positions.append([xi, yi])
+        """""
         if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle :
             particle1_positions.append([x1, y1])
-
+        if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle :
+            particle1_positions.append([xi, yi])
         particle1_save[i][0]=x1
         particle1_save[i][1] = y1
 
-        if frame >= frame_threshold1:
-            r_new = dr * (frame - frame_threshold1)
-            xi = particle1_save[i][0]
-            yi = particle1_save[i][1]
-            # Move particle1 in a spiral
-            r = dr * frame
-            angle = d_theta * frame
-            x1 = xi + r_new * np.cos(angle) + np.random.normal(0, 0.02)
-            y1 = yi + r_new * np.sin(angle) + np.random.normal(0, 0.02)
 
-            random_no = random.uniform(0, 1)
-            if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle:
-                particle1_positions.append([x1, y1])
-
-            particle1_save[i][0] = x1
-            particle1_save[i][1] = y1
-
-
-        if frame >= frame_threshold2:
-            r_new = dr * (frame - frame_threshold1)
-            xi = particle1_save3[i][0]
-            yi = particle1_save3[i][1]
-            # Move particle1 in a spiral
-            r = dr * frame
-            angle = d_theta * frame
-            x1 = xi + r_new * np.cos(angle) + np.random.normal(0, 0.02)
-            y1 = yi + r_new * np.sin(angle) + np.random.normal(0, 0.02)
-
-            random_no = random.uniform(0, 1)
-            if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle:
-                particle1_positions.append([x1, y1])
-
-            particle1_save3[i][0] = x1
-            particle1_save3[i][1] = y1
 
 
 
@@ -145,7 +125,7 @@ def update(frame):
             # print('move')
 
                 # Calculate the attraction force based on the distance
-                attraction_strength = 3
+                attraction_strength = 10
                 force_x = attraction_strength * dx
                 force_y = attraction_strength * dy
 
@@ -183,10 +163,31 @@ ax.set_xlim(-radius_circle, radius_circle)
 ax.set_ylim(-radius_circle, radius_circle)
 
 # Create particle1 as a red dot and particle2 as blue dots
-particle1, = ax.plot(x1, y1, 'ro', markersize=2)
-particle2_dots, = ax.plot([], [], 'bo', markersize=1, linestyle='')
+particle1, = ax.plot(x1, y1, 'ro', markersize=5)
+particle2_dots, = ax.plot([], [], 'bo', markersize=3, linestyle='')
 
 # Create the animation
 ani = animation.FuncAnimation(fig, update, frames=sim_time, interval=10, blit=True)
 
-plt.show()
+
+
+
+def plot_circle(center, radius):
+    theta = np.linspace(0, 2*np.pi, 100)
+    x = center[0] + radius * np.cos(theta)
+    y = center[1] + radius * np.sin(theta)
+
+    plt.plot(x, y)
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('spiral wave')
+    plt.grid(True)
+    plt.axis('equal')  # Set equal scaling for x and y axes to make the circle look circular
+    plt.show()
+
+# Example usage
+center = [0, 0]  # Center coordinates of the circle
+radius = radius_circle+1 # Radius of the circle
+plot_circle(center, radius)
+#plt.show()
+ani.save('spiral1.gif', writer='pillow')
