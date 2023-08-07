@@ -3,16 +3,21 @@ import matplotlib.pyplot as plt
 import random
 import matplotlib.animation as animation
 import copy
-patch_area=0.2
-sim_time=300
+patch_area=0.3
+sim_time=200
 dr= 0.01
 d_theta= 0.4
 frame_threshold1 = 70  # Number of frames after which the second patch appears
 frame_threshold2 = 120
 new_patch_offset = 100  # Offset for the new patch of particle1s to distinguish them
-D=0.003
+D=0.001
 num_particles = 30
 radius_circle = 3
+N=200
+
+x_grid=np.linspace(-3,3,100)
+y_grid=np.linspace(-3,3,100)
+grid=np.zeros((N,N))
 
 def random_polar_coordinates(radius):
     r = np.sqrt(np.random.uniform(0, radius**2))
@@ -52,24 +57,29 @@ def random_angle():
 
 particle_movement_type=[0 for _ in range(len(particle1_save))]
 time_to_add_particles=400
-
+particle1_save=[]
+particle_movement_type=[]
 def update(frame):
     particle_1_initial = []
 
     print(frame)
-    N=num_particles
+
     global particle1_positions, particle2
+    if frame<num_particles:
+        particle1_save.append([random.uniform(-0.1, 0.1), random.uniform(-0.1, 0.1)])
+        particle_movement_type.append(0)
+
     particle1_positions = []
     # Update particle1 positions
     if frame == frame_threshold1:
 
-        N=N+num_particles
+
         for _ in range(num_particles):
             particle1_save.append([random.uniform(-0.2,0.2),random.uniform(-0.2,0.2)])
             particle_movement_type.append(1)
     if frame == frame_threshold2:
 
-        N=N+num_particles
+
         for _ in range(num_particles):
             particle1_save.append([random.uniform(-0.2,0.2),random.uniform(-0.2,0.2)])
             particle_movement_type.append(2)
@@ -107,15 +117,18 @@ def update(frame):
         if np.sqrt((x1) ** 2 + (y1) ** 2) < radius_circle :
             particle1_positions.append([xi, yi])
         particle1_save[i][0]=x1
-        particle1_save[i][1] = y1
+        particle1_save[i][1]=y1
 
 
 
 
 
     # Update particle2 positions
-    for i in range(len(particle1_positions)):
-        x1, y1 = particle1_positions[i]
+    for i in range(len(particle1_save)):
+        x1 = particle1_save[i][0]
+        y1 = particle1_save[i][1]
+
+
         for j in range(len(particle2)):
             x2, y2 = particle2[j]
             dx = x1 - x2
@@ -125,7 +138,7 @@ def update(frame):
             # print('move')
 
                 # Calculate the attraction force based on the distance
-                attraction_strength = 10
+                attraction_strength = 1
                 force_x = attraction_strength * dx
                 force_y = attraction_strength * dy
 
@@ -166,9 +179,6 @@ ax.set_ylim(-radius_circle, radius_circle)
 particle1, = ax.plot(x1, y1, 'ro', markersize=5)
 particle2_dots, = ax.plot([], [], 'bo', markersize=3, linestyle='')
 
-# Create the animation
-ani = animation.FuncAnimation(fig, update, frames=sim_time, interval=10, blit=True)
-
 
 
 
@@ -184,10 +194,13 @@ def plot_circle(center, radius):
     plt.grid(True)
     plt.axis('equal')  # Set equal scaling for x and y axes to make the circle look circular
     plt.show()
+# Create the animation
+ani = animation.FuncAnimation(fig, update, frames=sim_time, interval=50, blit=True)
+
 
 # Example usage
 center = [0, 0]  # Center coordinates of the circle
-radius = radius_circle+1 # Radius of the circle
+radius = radius_circle+0.5 # Radius of the circle
 plot_circle(center, radius)
-#plt.show()
+plt.show()
 ani.save('spiral1.gif', writer='pillow')
