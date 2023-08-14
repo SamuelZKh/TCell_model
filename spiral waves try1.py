@@ -3,18 +3,18 @@ import matplotlib.pyplot as plt
 import random
 import matplotlib.animation as animation
 import copy
-patch_area=0.3
+patch_area=0.2
 sim_time=200
 dr= 0.01
-d_theta= 0.4
-frame_threshold1 = 70  # Number of frames after which the second patch appears
-frame_threshold2 = 120
+d_theta= 0.2
+frame_threshold1 = 50  # Number of frames after which the second patch appears
+frame_threshold2 = 80
 new_patch_offset = 100  # Offset for the new patch of particle1s to distinguish them
 D=0.001
 num_particles = 30
 radius_circle = 3
 N=200
-
+num_TCR=1000
 x_grid=np.linspace(-3,3,100)
 y_grid=np.linspace(-3,3,100)
 grid=np.zeros((N,N))
@@ -44,7 +44,7 @@ for i in range(num_particles):
     particle_1_initial.append([x, y])
 
 particle1_save=copy.copy(particle_1_initial)
-num_TCR=200
+
 
 
 particle2 = [[np.random.uniform(-10, 10), np.random.uniform(-10, 10)] for _ in range(num_TCR)]
@@ -59,6 +59,8 @@ particle_movement_type=[0 for _ in range(len(particle1_save))]
 time_to_add_particles=400
 particle1_save=[]
 particle_movement_type=[]
+
+r_store=[]
 def update(frame):
     particle_1_initial = []
 
@@ -118,12 +120,18 @@ def update(frame):
             particle1_positions.append([xi, yi])
         particle1_save[i][0]=x1
         particle1_save[i][1]=y1
+        if frame==sim_time:
+            break
 
 
 
 
 
     # Update particle2 positions
+    r_t=[]
+    for j in range(len(particle2)):
+        r_t.append(np.sqrt(x1 ** 2 + y1 ** 2))
+    r_store.append(np.mean(r_t))
     for i in range(len(particle1_save)):
         x1 = particle1_save[i][0]
         y1 = particle1_save[i][1]
@@ -131,21 +139,24 @@ def update(frame):
 
         for j in range(len(particle2)):
             x2, y2 = particle2[j]
+
             dx = x1 - x2
             dy = y1 - y2
             dist = np.sqrt(dx**2 + dy**2)
+            dist_center=np.sqrt(x2**2 + y2**2)
             if dist < patch_area:
             # print('move')
 
                 # Calculate the attraction force based on the distance
-                attraction_strength = 1
+                attraction_strength = 5
                 force_x = attraction_strength * dx
                 force_y = attraction_strength * dy
 
                 # Move particle2 in the direction of particle1 with attraction force
-                particle2[j] = [x1,y1]
+                if np.sqrt((x2+force_x)**2 + (y2+force_y)**2)<=radius_circle:
+                    particle2[j] = [x2+force_x,y2+force_y]
 
-            else:
+            elif dist > patch_area and dist_center<=radius_circle:
                 # If not, move particle2 in a random direction
                 angle2 = random_angle()
                 dx2 = D * np.cos(angle2)
@@ -167,7 +178,7 @@ x1, y1 = 3, 0
 # Initialize particle2 positions uniformly inside a circle
 
 
-particle2 = [random_polar_coordinates(radius_circle) for _ in range(num_TCR)]
+particle2 = [random_polar_coordinates(radius_circle-1) for _ in range(num_TCR)]
 particle2 = [[r * np.cos(theta), r * np.sin(theta)] for r, theta in particle2]
 
 # Set up the figure and axis
@@ -195,12 +206,22 @@ def plot_circle(center, radius):
     plt.axis('equal')  # Set equal scaling for x and y axes to make the circle look circular
     plt.show()
 # Create the animation
-ani = animation.FuncAnimation(fig, update, frames=sim_time, interval=50, blit=True)
+ani = animation.FuncAnimation(fig, update, frames=sim_time, interval=50)
 
 
 # Example usage
 center = [0, 0]  # Center coordinates of the circle
 radius = radius_circle+0.5 # Radius of the circle
 plot_circle(center, radius)
+ani.save('grid_movie.gif', writer='pillow')
+
+# Alternatively, show the animation in a pop-up window
 plt.show()
-ani.save('spiral1.gif', writer='pillow')
+
+#plt.show()
+plt.plot(r_store)
+plt.title('Hypothesis1_spiral')
+plt.xlabel('time')
+plt.ylabel('Average radial Distance of TCR')
+
+plt.show()
