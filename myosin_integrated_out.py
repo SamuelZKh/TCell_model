@@ -13,20 +13,20 @@ if not os.path.exists('plots'):
 length_x = 1.0
 length_y = 1.0
 
-dt=0.00000001
-num_points_x = 256
-num_points_y = 256
+dt=0.0001
+num_points_x = 128
+num_points_y = 128
 
 dx = 1/8
 dy = 1/8
-time_end =10
+time_end =10000
 num_steps = int(time_end/dt)
 print(num_steps)
 
 l=4
 Da = 1
 Dm=1
-W=30 # -10 - -30
+W=-30 # -10 - -30
 v0=0.1 #0.1-2
 
 kb=0.25 # 0.25-16
@@ -42,11 +42,11 @@ ch=1/4
 
 v=1
 
-C=0.1
-Csig=0.05
+C=1
+Csig=0.01
 P=1
 Psig=0.01
-import numpy as np
+Nsig=0.001
 
 
 center_x = num_points_x // 2
@@ -112,8 +112,8 @@ def time_evolve(nx,ny,c,p):
 
             dc[i,j] = dt *(Da*laplacian_c-v0*(grad_cnx+grad_cny))
 
-            dnx[i,j]=dt*(-lam*(nx[i,j]*grad_nx_x+ny[i,j]*grad_nx_y)+K*laplacian_nx+K2*(del_x_sq_nx+del_x_dely_nx)+eta0*grad_cx+alpha[i,j]*nx[i,j]+eta*grad_px+(beta[i,j]*n_sq[i,j])*nx[i,j])
-            dny[i,j] = dt * (-lam * (ny[i,j] * grad_ny_x + nx[i,j] * grad_ny_y) + K* laplacian_ny+K2*(del_y_sq_ny+del_x_dely_ny) + eta0 * grad_cy + alpha[i,j] * ny[i,j] + eta * grad_py + (beta[i,j] * n_sq[i,j]) * ny[i,j])
+            dnx[i,j]=dt*(-lam*(nx[i,j]*grad_nx_x+ny[i,j]*grad_nx_y)+K*laplacian_nx+K2*(del_x_sq_nx+del_x_dely_nx)+eta*grad_cx+(alpha[i,j]-beta[i,j]*n_sq[i,j])*nx[i,j])
+            dny[i,j] = dt * (-lam * (ny[i,j] * grad_ny_x + nx[i,j] * grad_ny_y) + K* laplacian_ny+K2*(del_y_sq_ny+del_x_dely_ny) + eta * grad_cy + (alpha[i,j]  - beta[i,j] * n_sq[i,j]) * ny[i,j])
 
     return dc,dnx,dny
 
@@ -123,13 +123,14 @@ c = C*(np.ones((num_points_x,num_points_x))+ Csig*np.random.rand(num_points_x,nu
 p = P*(np.ones((num_points_x,num_points_x))+ Psig*np.random.rand(num_points_x,num_points_x))
 
 ### disordered IC
+
 theta = np.random.uniform(0, 2 * np.pi, (num_points_x, num_points_y))
 nx = np.cos(theta)
 ny = np.sin(theta)
 
 ### ordered IC
 """""
-theta = np.zeros((num_points_x, num_points_y))
+theta = np.zeros((num_points_x, num_points_y))+Nsig*np.random.uniform(0, 2 * np.pi, (num_points_x, num_points_y))
 nx = np.cos(theta)
 ny = np.sin(theta)
 """""
