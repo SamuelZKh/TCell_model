@@ -13,41 +13,40 @@ if not os.path.exists('plots'):
 # Parameters
 length_x = 1.0
 length_y = 1.0
-
-dt=0.0000001
+dt=0.00001
 num_points_x = 64
 num_points_y = 64
 
-dx = 1
-dy = 1
+dx = 1/4
+dy = 1/4
 time_end =100
 num_steps = int(time_end/dt)
 print(num_steps)
 
 D = 0.00
-k = 575
-alpha = 288
+k = 118
+alpha = 588
 Da=0.045
-D_psi=0.00
+D_psi=0.00003
 k2=1
 w1=0.006
-wd=30
-va=20
+wd=0.1
+va=0.4
 kd=175
 nf0=120
-beta=0.0036
+beta=0.003
 
-epsilon=30
+epsilon=0.4
 delta=0.5
 
 T=1
 Tsig=0.1
-NA=10
-NAsig=0.3
+NA=120
+NAsig=30
 NI=0
 NIsig=0.1
 
-radius=10
+radius=25
 
 
 center_x = num_points_x // 2
@@ -68,9 +67,8 @@ def time_evolve(px,py,T,na,ni,psi,V0):
     dni = np.zeros((num_points_x, num_points_x))
     dpsi = np.zeros((num_points_x, num_points_x))
 
-
     integral_psi = np.sum(psi == 1)
-
+    delta = (0.5 + epsilon * ((integral_psi) - V0))
 
 
 
@@ -86,7 +84,7 @@ def time_evolve(px,py,T,na,ni,psi,V0):
             laplacian_T = (T[i_plus_1, j] - 2 * T[i, j] + T[i_minus_1, j]) / (dx ** 2) + (T[i, j_plus_1] - 2 * T[i, j] + T[i, j_minus_1]) / (dy ** 2)
             laplacian_px = (px[i_plus_1, j] - 2 * px[i, j] + px[i_minus_1, j]) / (dx ** 2) + (px[i, j_plus_1] - 2 * px[i, j] + px[i, j_minus_1]) / (dy ** 2) ## also used in 2nd equation
             laplacian_py = (py[i_plus_1,j]-2*py[i, j]+py[i_minus_1,j])/(dx** 2)+(py[i, j_plus_1] - 2 * py[i, j] + py[i, j_minus_1]) / (dy ** 2)  ## also used in 2nd equation
-            grad_py_x = (py[i_plus_1, j] - py[i_minus_1, j]) / (2 * dx)
+            grad_px_x = (px[i_plus_1, j] - px[i_minus_1, j]) / (2 * dx)
             grad_py_y=(py[i, j_plus_1] - py[i, j_minus_1])/(2 * dy)
             grad_Tx = (T[i_plus_1, j] - T[i_minus_1, j]) / (2 * dx)
             grad_Ty = (T[i, j_plus_1] - T[i, j_minus_1]) / (2 * dy)
@@ -101,16 +99,16 @@ def time_evolve(px,py,T,na,ni,psi,V0):
 
 
 
-            dT[i,j] = dt *(D*laplacian_T-kd*(psi[i,j]*T[i,j])-va*psi[i,j]*(grad_py_x+grad_py_y)+alpha*psi[i,j]*na[i,j])
-            dpx[i,j]=dt*(-D*laplacian_px-kd*psi[i,j]* px[i,j]-va*psi[i,j]* grad_Tx)
-            dpy[i, j] = dt * (-D * laplacian_py - kd *psi[i,j]* py[i, j] - va *psi[i,j]* grad_Ty)
+            dT[i,j] = dt *(D*laplacian_T-kd*(psi[i,j]*T[i,j])-va*psi[i,j]*(grad_px_x+grad_py_y)+alpha*psi[i,j]*na[i,j])
+            dpx[i,j]=dt*(D*laplacian_px-kd*psi[i,j]* px[i,j]-va*psi[i,j]* grad_Tx)
+            dpy[i, j] = dt * (D * laplacian_py - kd *psi[i,j]* py[i, j] - va *psi[i,j]* grad_Ty)
             dna[i,j]=dt*(Da*laplacian_na+psi[i,j]*(1+w1*na[i,j]**2)*ni[i,j]-wd*psi[i,j]*T[i,j]*na[i,j])
             dni[i, j] = dt * (laplacian_ni - psi[i,j]*(1 + w1 * na[i, j] ** 2) * ni[i, j] + wd *psi[i,j]* T[i, j] * na[i,j])
 
             ############   psi: delta integral ###################
 
-            delta = (0.5 + epsilon * ((integral_psi) - V0))
-            dpsi[i,j] =(k2 * psi[i,j] * (1 - psi[i,j]) * (psi[i,j] - delta) + D_psi * laplacian_psi - beta * (px[i,j]*grad_psi_x + py[i,j]*grad_psi_y)) * dt
+
+            #dpsi[i,j] =(k * psi[i,j] * (1 - psi[i,j]) * (psi[i,j] - delta) + D_psi * laplacian_psi - beta * (px[i,j]*grad_psi_x + py[i,j]*grad_psi_y)) * dt
 
     return dT,dpx,dpy,dna,dni,dpsi
 
@@ -140,8 +138,8 @@ for i in range(num_points_x):
         if (i - center_x) ** 2 + (j - center_y) ** 2 <= radius ** 2:
             psi[i, j] = 1
 Vi=np.sum(psi == 1)
-
-
+print('V0',Vi)
+plt.imshow(psi)
 
 
 for t in range(num_steps):
@@ -151,7 +149,10 @@ for t in range(num_steps):
     py_new = py + dpy
     na_new=na+dna
     ni_new = ni + dni
-    psi_new = ni + dpsi
+    psi_new = psi
+    #print(np.max(psi))
+
+
 
 
     T = np.copy(T_new)
@@ -166,16 +167,16 @@ for t in range(num_steps):
         X, Y = np.meshgrid(x, y)
 
         # Create the quiver plot for vector field P
-        plt.quiver(X, Y, px,py, alpha=1)
+       # plt.quiver(X, Y, px*0.01,py*0.01, alpha=1)
 
-        plt.imshow(psi, cmap='coolwarm', extent=[0, length_x, 0, length_y], origin='lower', aspect='auto')
+        plt.imshow(T, cmap='jet', extent=[0, length_x, 0, length_y], origin='lower', aspect='auto',vmin=7000)
         plt.xlabel('x')
         plt.ylabel('y')
         plt.colorbar(label='T')
         plt.title(f'Scalar rho with Gradient Term and Vector Field n (Time Step {t})')
 
         # Save the plot as an image file in the 'plots' directory
-        plt.savefig(f'plots2/T_and_P_plot_{t}.png')
+        plt.savefig(f'plots5/T_and_P_plot_{t}.png')
         #plt.show()
         # Clear the current figure to prepare for the next iteration
         plt.clf()
