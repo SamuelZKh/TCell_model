@@ -32,8 +32,8 @@ Dm=Da
 W=-20 # -10 - -20
 v0=2 #0.1-2
 
-kb=3 # 0.25-16
-ku=4.5 # 0.125-8
+kb=1 # 0.25-16
+ku=5.5 # 0.125-8
 
 c_str=1/64
 eta=1
@@ -167,7 +167,7 @@ for t in range(num_steps):
     p = np.copy(p_new)
     nx = np.copy(nx_new)
     ny = np.copy(ny_new)
-    if t%10000==0:
+    if t%100000==0:
         print(t)
         """""
         print(t)
@@ -200,7 +200,7 @@ for t in range(num_steps):
         # Save the plot as an image file in the 'plots' directory
         plt.savefig(f'plots_p/T_and_P_plot_{t}.png')
         # Save the rho matrix values to the CSV file
-        with open('rho_field.csv', 'a', newline='') as csvfile:
+        with open('rho_field.txt', 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerows(p)
 
@@ -221,15 +221,15 @@ for t in range(num_steps):
         plt.clf()
 
         # Save the T matrix values to the CSV file
-        with open('T_field.csv', 'a', newline='') as csvfile:
+        with open('T_field.txt', 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerows(c)
         # Save the T matrix values to the CSV file
-        with open('nx_field.csv', 'a', newline='') as csvfile:
+        with open('nx_field.txt', 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerows(nx)
         # Save the T matrix values to the CSV file
-        with open('ny_field.csv', 'a', newline='') as csvfile:
+        with open('ny_field.txt', 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerows(ny)
 
